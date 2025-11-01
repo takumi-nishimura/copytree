@@ -7,7 +7,7 @@ use clap::Parser;
 use ignore::DirEntry;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 fn main() -> Result<()> {
     let args = args::Args::parse();
@@ -21,15 +21,36 @@ fn main() -> Result<()> {
     // Append file contents
     for entry in entries {
         let path = entry.path();
-        if path.is_file() {
-            match fs::read_to_string(path) {
-                Ok(content) => {
-                    let header = format!("--- {} ---\n", path.display());
+        if !path.is_file() {
+            continue;
+        }
+
+        let header = format!("--- {} ---\n", path.display());
+
+        if args.max_file_bytes > 0 {
+            if let Ok(metadata) = fs::metadata(path) {
+                if metadata.len() as usize > args.max_file_bytes {
+                    let note = format!(
+                        "<skipped: file size {} bytes exceeds --max-file-bytes {}>\n\n",
+                        metadata.len(),
+                        args.max_file_bytes
+                    );
                     output_text.push_str(&header);
-                    output_text.push_str(&content);
-                    output_text.push_str("\n\n");
+                    output_text.push_str(&note);
+                    continue;
                 }
-                Err(_) => {} // Skip binary files
+            }
+        }
+
+        match fs::read_to_string(path) {
+            Ok(content) => {
+                output_text.push_str(&header);
+                output_text.push_str(&content);
+                output_text.push_str("\n\n");
+            }
+            Err(_) => {
+                output_text.push_str(&header);
+                output_text.push_str("<skipped: binary file>\n\n");
             }
         }
     }
@@ -130,13 +151,22 @@ fn display_name(path: &Path) -> String {
 }
 
 fn make_relative_path(path: &Path, current_dir: &Path) -> PathBuf {
-    if path.is_absolute() {
+    let base = if path.is_absolute() {
         path.strip_prefix(current_dir)
             .map(PathBuf::from)
             .unwrap_or_else(|_| path.to_path_buf())
     } else {
         path.to_path_buf()
+    };
+
+    let mut normalized = PathBuf::new();
+    for component in base.components() {
+        if let Component::CurDir = component {
+            continue;
+        }
+        normalized.push(component.as_os_str());
     }
+    normalized
 }
 
 fn determine_root_label(paths: &[String], current_dir: &Path) -> String {
