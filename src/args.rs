@@ -9,7 +9,7 @@ pub struct Args {
     pub paths: Vec<String>,
 
     /// Glob patterns to exclude.
-    #[arg(short, long)]
+    #[arg(short = 'x', long)]
     pub exclude: Vec<String>,
 
     /// Maximum size (in bytes) of file contents to include; use 0 to disable.
