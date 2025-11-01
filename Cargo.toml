@@ -1,6 +1,11 @@
 [package]
 name = "copytree"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+anyhow = "1.0"
+arboard = "3.2"
+clap = { version = "4.4", features = ["derive"] }
+ignore = "0.4"
+petgraph = "0.6"
