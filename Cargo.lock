@@ -195,6 +195,7 @@ dependencies = [
  "anyhow",
  "arboard",
  "clap",
+ "globset",
  "ignore",
 ]
 

@@ -2,8 +2,9 @@ mod args;
 mod output;
 mod walker;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
+use globset::{Glob, GlobSet, GlobSetBuilder};
 use ignore::DirEntry;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -12,9 +13,11 @@ use std::path::{Component, Path, PathBuf};
 
 fn main() -> Result<()> {
     let args = args::Args::parse();
-    let entries = walker::walk_paths(&args.paths, args.no_gitignore, &args.exclude)?;
+    let exclude_set = build_exclude_set(&args.exclude)?;
+    let entries = walker::walk_paths(&args.paths, args.no_gitignore)?;
+    let current_dir = std::env::current_dir()?;
 
-    let tree_text = render_tree(&entries, &args.paths)?;
+    let tree_text = render_tree(&entries, &args.paths, &current_dir)?;
 
     let mut output_text = tree_text;
     output_text.push_str("\n");
@@ -27,6 +30,15 @@ fn main() -> Result<()> {
         }
 
         let header = format!("--- {} ---\n", path.display());
+
+        if exclude_set
+            .as_ref()
+            .map_or(false, |set| is_excluded(path, set, &current_dir))
+        {
+            output_text.push_str(&header);
+            output_text.push_str("<skipped: excluded by pattern>\n\n");
+            continue;
+        }
 
         if args.max_file_bytes > 0 {
             if let Ok(metadata) = fs::metadata(path) {
@@ -60,8 +72,38 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn render_tree(entries: &[DirEntry], requested_paths: &[String]) -> Result<String> {
-    let current_dir = std::env::current_dir()?;
+fn build_exclude_set(patterns: &[String]) -> Result<Option<GlobSet>> {
+    if patterns.is_empty() {
+        return Ok(None);
+    }
+
+    let mut builder = GlobSetBuilder::new();
+    for pattern in patterns {
+        let glob =
+            Glob::new(pattern).with_context(|| format!("Invalid exclude glob: {}", pattern))?;
+        builder.add(glob);
+    }
+
+    builder
+        .build()
+        .map(Some)
+        .with_context(|| "Failed to build exclude glob set".to_string())
+}
+
+fn is_excluded(path: &Path, set: &GlobSet, current_dir: &Path) -> bool {
+    if set.is_match(path) {
+        return true;
+    }
+
+    let relative = make_relative_path(path, current_dir);
+    set.is_match(relative)
+}
+
+fn render_tree(
+    entries: &[DirEntry],
+    requested_paths: &[String],
+    current_dir: &Path,
+) -> Result<String> {
     let mut children: BTreeMap<PathBuf, BTreeSet<PathBuf>> = BTreeMap::new();
 
     for entry in entries {
