@@ -311,4 +311,34 @@ mod tests {
         assert_eq!(label, ".");
         assert!(root_path.is_none());
     }
+
+    #[test]
+    fn exclude_matches_relative_path() {
+        let pattern = vec!["src/*".to_string()];
+        let set = build_exclude_set(&pattern).expect("exclude set");
+        assert!(set.is_some());
+        let current_dir = Path::new("/project");
+        let path = Path::new("/project/src/main.rs");
+        assert!(is_excluded(path, set.as_ref().unwrap(), current_dir));
+    }
+
+    #[test]
+    fn exclude_matches_with_leading_dot() {
+        let pattern = vec!["src/*".to_string()];
+        let set = build_exclude_set(&pattern).expect("exclude set");
+        assert!(set.is_some());
+        let current_dir = Path::new("/project");
+        let path = Path::new("./src/main.rs");
+        assert!(is_excluded(path, set.as_ref().unwrap(), current_dir));
+    }
+
+    #[test]
+    fn exclude_matches_plain_relative_path() {
+        let pattern = vec!["src/*".to_string()];
+        let set = build_exclude_set(&pattern).expect("exclude set");
+        assert!(set.is_some());
+        let current_dir = Path::new("/project");
+        let path = Path::new("src/main.rs");
+        assert!(is_excluded(path, set.as_ref().unwrap(), current_dir));
+    }
 }

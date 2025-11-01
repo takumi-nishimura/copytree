@@ -47,6 +47,8 @@ copytree [PATHS] [FLAGS]
 | `--stdout` | Print the result to standard output instead of the clipboard. |
 | `--out <FILE>` | Save the collected output to the provided file path. |
 
+> Note: shells expand globs before `copytree` runs. The exclude flag now consumes every consecutive value until the next option, so commands like `copytree . -x src/*` work even without quoting. If you need to list additional paths after `-x/--exclude`, insert `--` first (for example: `copytree -x 'target/**' -- docs examples`).
+
 ### Example
 
 ```bash
