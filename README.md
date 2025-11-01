@@ -52,10 +52,47 @@ copytree [PATHS] [FLAGS]
 ### Example
 
 ```bash
-copytree --exclude target/** --max-file-bytes 4096
+copytree src/ -x src/args.rs -x src/main.rs -x src/walker.rs
 ```
 
-The above command copies the current directory tree to the clipboard, skips the Cargo `target` directory, and trims file captures to 4 KiB each.
+```bash
+src
+├─ args.rs
+├─ main.rs
+├─ output.rs
+└─ walker.rs
+
+--- src/walker.rs ---
+<skipped: excluded by pattern>
+
+--- src/output.rs ---
+use anyhow::{Context, Result};
+use arboard::Clipboard;
+use std::fs;
+
+pub fn handle_output(text: &str, to_stdout: bool, out_file: Option<String>) -> Result<()> {
+    if to_stdout {
+        println!("{}", text);
+    } else if let Some(file_path) = out_file {
+        fs::write(&file_path, text)
+            .with_context(|| format!("Failed to write to file: {}", file_path))?;
+        println!("Output written to {}.", file_path);
+    } else {
+        let mut clipboard = Clipboard::new()?;
+        clipboard.set_text(text)?;
+        println!("Copied to clipboard.");
+    }
+    Ok(())
+}
+
+
+--- src/main.rs ---
+<skipped: excluded by pattern>
+
+--- src/args.rs ---
+<skipped: excluded by pattern>
+
+```
 
 ## Development
 
