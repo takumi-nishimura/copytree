@@ -7,7 +7,7 @@
 - Renders a clean tree of one or more directories without duplicating paths.
 - Respects `.gitignore` rules unless you opt out with `--no-gitignore`.
 - Skips large files automatically via `--max-file-bytes` (default 16 KiB) to keep output manageable.
-- Lets you exclude additional files with glob patterns (`--exclude 'target/**'`).
+- Lets you exclude additional files with glob patterns (`--exclude target/**`).
 - Writes to the clipboard, stdout, or a file depending on your flags.
 
 ## Installation
@@ -47,12 +47,12 @@ copytree [PATHS] [FLAGS]
 | `--stdout` | Print the result to standard output instead of the clipboard. |
 | `--out <FILE>` | Save the collected output to the provided file path. |
 
-> Note: shells expand globs before `copytree` runs. The exclude flag now consumes every consecutive value until the next option, so commands like `copytree . -x src/*` work even without quoting. If you need to list additional paths after `-x/--exclude`, insert `--` first (for example: `copytree -x 'target/**' -- docs examples`).
+> Note: shells expand globs before `copytree` runs. The exclude flag now consumes every consecutive value until the next option, so commands like `copytree . -x src/*` work even without quoting the flag itself. If you need to list additional paths after `-x` or `--exclude`, insert `--` first (for example: `copytree -x target/** -- docs examples`).
 
 ### Example
 
 ```bash
-copytree --exclude 'target/**' --max-file-bytes 4096
+copytree --exclude target/** --max-file-bytes 4096
 ```
 
 The above command copies the current directory tree to the clipboard, skips the Cargo `target` directory, and trims file captures to 4 KiB each.

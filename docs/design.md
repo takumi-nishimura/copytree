@@ -55,7 +55,7 @@ copytree [PATH ...] [OPTIONS]
 - `--redact <regex>` : 機密情報をマスク
 - `-v/--verbose` : 詳細表示
 
-> Note: shells expand globs before `copytree` runs．The exclude flag now accepts the entire stretch of values until the next option, so `copytree . -x src/*` behaves as expected even without quoting．When you need to continue specifying paths after an exclude flag, insert `--` first（例：`copytree assets -x '**/*.png' -- tests`）．
+> Note: shells expand globs before `copytree` runs．The exclude flag now accepts the entire stretch of values until the next option, so `copytree . -x src/*` behaves as expected even without quoting the flag itself．When you need to continue specifying paths after an exclude flag, insert `--` first（例：`copytree assets -x **/*.png -- tests`）．
 
 ---
 
@@ -118,7 +118,7 @@ copytree
 
 ### 特定フォルダのみコピー
 ```bash
-copytree src app -x "**/*.png" -x "**/*.lock"
+copytree src app -x **/*.png -x **/*.lock
 ```
 
 ### `.gitignore` を無視
