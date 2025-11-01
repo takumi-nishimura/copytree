@@ -1,14 +1,14 @@
 mod args;
-mod walker;
 mod output;
+mod walker;
 
 use anyhow::Result;
 use clap::Parser;
+use petgraph::graph::DiGraph;
+use petgraph::visit::Dfs;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use petgraph::graph::DiGraph;
-use petgraph::visit::Dfs;
 
 fn main() -> Result<()> {
     let args = args::Args::parse();
@@ -26,9 +26,9 @@ fn main() -> Result<()> {
         for component in path.components() {
             let next_path = current_path.join(component);
             let parent_node = *node_map.get(&current_path).unwrap_or(&root);
-            let node = *node_map.entry(next_path.clone()).or_insert_with(|| {
-                graph.add_node(next_path.clone())
-            });
+            let node = *node_map
+                .entry(next_path.clone())
+                .or_insert_with(|| graph.add_node(next_path.clone()));
             graph.add_edge(parent_node, node, ());
             current_path = next_path;
         }
@@ -58,7 +58,7 @@ fn main() -> Result<()> {
                     output_text.push_str(&header);
                     output_text.push_str(&content);
                     output_text.push_str("\n\n");
-                },
+                }
                 Err(_) => {} // Skip binary files
             }
         }
