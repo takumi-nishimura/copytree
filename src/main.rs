@@ -6,6 +6,7 @@ use anyhow::Result;
 use clap::Parser;
 use ignore::DirEntry;
 use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -80,8 +81,7 @@ fn render_tree(entries: &[DirEntry], requested_paths: &[String]) -> Result<Strin
         }
     }
 
-    let root_label = determine_root_label(requested_paths, &current_dir);
-    let root_path = determine_root_path(requested_paths, &current_dir);
+    let (root_label, root_path) = determine_root_scope(requested_paths, &current_dir);
 
     if children.is_empty() {
         return Ok(format!("{}\n", root_label));
@@ -169,46 +169,104 @@ fn make_relative_path(path: &Path, current_dir: &Path) -> PathBuf {
     normalized
 }
 
-fn determine_root_label(paths: &[String], current_dir: &Path) -> String {
-    if let Some(first) = paths.first() {
-        let trimmed = first.trim();
-        if !trimmed.is_empty() && trimmed != "." && trimmed != "./" {
-            let candidate = Path::new(trimmed);
-            if let Some(name) = candidate.file_name() {
-                let value = name.to_string_lossy().into_owned();
-                if !value.is_empty() {
-                    return value;
-                }
-            }
-            return trimmed.to_string();
-        }
-    }
+fn determine_root_scope(paths: &[String], current_dir: &Path) -> (String, Option<PathBuf>) {
+    let mut normalized: Vec<PathBuf> = Vec::new();
 
-    current_dir
-        .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .filter(|name| !name.is_empty())
-        .unwrap_or_else(|| ".".to_string())
-}
-
-fn determine_root_path(paths: &[String], current_dir: &Path) -> Option<PathBuf> {
-    let mut resolved = paths.iter().filter_map(|raw| {
+    for raw in paths {
         let trimmed = raw.trim();
-        if trimmed.is_empty() || trimmed == "." || trimmed == "./" {
-            return None;
+        if trimmed.is_empty() {
+            continue;
         }
         let candidate = Path::new(trimmed);
         let relative = make_relative_path(candidate, current_dir);
-        if relative.components().count() == 0 {
-            None
-        } else {
-            Some(relative)
-        }
-    });
-
-    let first = resolved.next()?;
-    if resolved.next().is_some() {
-        return None;
+        normalized.push(relative);
     }
-    Some(first)
+
+    if normalized.is_empty() {
+        return (".".to_string(), None);
+    }
+
+    if normalized
+        .iter()
+        .any(|path| path.components().next().is_none())
+    {
+        return (".".to_string(), None);
+    }
+
+    let mut prefix_components: Vec<OsString> = normalized[0]
+        .components()
+        .map(|component| component.as_os_str().to_os_string())
+        .collect();
+
+    for path in &normalized[1..] {
+        let current_components: Vec<OsString> = path
+            .components()
+            .map(|component| component.as_os_str().to_os_string())
+            .collect();
+        let mut new_prefix = Vec::new();
+        for (left, right) in prefix_components.iter().zip(current_components.iter()) {
+            if left == right {
+                new_prefix.push(left.clone());
+            } else {
+                break;
+            }
+        }
+        prefix_components = new_prefix;
+        if prefix_components.is_empty() {
+            break;
+        }
+    }
+
+    if prefix_components.is_empty() {
+        (".".to_string(), None)
+    } else {
+        let mut root_path = PathBuf::new();
+        for component in prefix_components {
+            root_path.push(component);
+        }
+        let label = root_path.to_string_lossy().into_owned();
+        if label.is_empty() {
+            (".".to_string(), None)
+        } else {
+            (label, Some(root_path))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn root_scope_returns_dot_for_current_directory() {
+        let paths = vec![".".to_string()];
+        let (label, root_path) = determine_root_scope(&paths, Path::new("/project"));
+        assert_eq!(label, ".");
+        assert!(root_path.is_none());
+    }
+
+    #[test]
+    fn root_scope_tracks_single_relative_path() {
+        let paths = vec!["src".to_string()];
+        let (label, root_path) = determine_root_scope(&paths, Path::new("/project"));
+        assert_eq!(label, "src");
+        assert_eq!(root_path, Some(PathBuf::from("src")));
+    }
+
+    #[test]
+    fn root_scope_uses_common_prefix_for_nested_paths() {
+        let paths = vec!["src".to_string(), "src/output.rs".to_string()];
+        let (label, root_path) = determine_root_scope(&paths, Path::new("/project"));
+        assert_eq!(label, "src");
+        assert_eq!(root_path, Some(PathBuf::from("src")));
+    }
+
+    #[test]
+    fn root_scope_falls_back_to_dot_when_no_common_prefix() {
+        let paths = vec!["src".to_string(), "docs".to_string()];
+        let (label, root_path) = determine_root_scope(&paths, Path::new("/project"));
+        assert_eq!(label, ".");
+        assert!(root_path.is_none());
+    }
 }
