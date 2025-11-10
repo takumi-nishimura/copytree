@@ -9,9 +9,11 @@ use ignore::DirEntry;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::{Component, Path, PathBuf};
 
 fn main() -> Result<()> {
+    load_env_file();
     let args = args::Args::parse();
     let exclude_set = build_exclude_set(&args.exclude)?;
     let entries = walker::walk_paths(&args.paths, args.no_gitignore)?;
@@ -73,6 +75,14 @@ fn main() -> Result<()> {
 
     output::handle_output(&output_text, args.stdout, args.out)?;
     Ok(())
+}
+
+fn load_env_file() {
+    match dotenvy::from_filename(".env") {
+        Ok(_) => {}
+        Err(dotenvy::Error::Io(io_err)) if io_err.kind() == ErrorKind::NotFound => {}
+        Err(err) => eprintln!("Warning: failed to load .env: {err}"),
+    }
 }
 
 fn build_exclude_set(patterns: &[String]) -> Result<Option<GlobSet>> {

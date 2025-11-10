@@ -48,6 +48,7 @@ copytree [PATH ...] [OPTIONS]
 - `--no-gitignore` : `.gitignore` を無視
 - `--skip-binary` : バイナリファイルを除外（既定）
 - `--max-file-bytes <N>` : ファイルごとの上限
+  - 環境変数 `MAX_FILE_BYTES`（カレントディレクトリの`.env`を含む）でもデフォルト値を指定可能
 - `--max-total-bytes <N>` : 全体の上限
 - `--stdout` : 標準出力へ
 - `--out <path>` : ファイル出力

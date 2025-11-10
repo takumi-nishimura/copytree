@@ -13,7 +13,7 @@ pub struct Args {
     pub exclude: Vec<String>,
 
     /// Maximum size (in bytes) of file contents to include; use 0 to disable.
-    #[arg(long, value_name = "BYTES", default_value_t = 16 * 1024)]
+    #[arg(long, value_name = "BYTES", default_value_t = 16 * 1024, env = "MAX_FILE_BYTES")]
     pub max_file_bytes: usize,
 
     /// Do not respect .gitignore files.
