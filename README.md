@@ -49,6 +49,8 @@ copytree [PATHS] [FLAGS]
 
 > Note: shells expand globs before `copytree` runs. The exclude flag now consumes every consecutive value until the next option, so commands like `copytree . -x src/*` work even without quoting the flag itself. If you need to list additional paths after `-x` or `--exclude`, insert `--` first (for example: `copytree -x target/** -- docs examples`).
 
+`MAX_FILE_BYTES` can be set in your environment—or inside a `.env` file in the working directory—to change the default used by `--max-file-bytes` without passing the flag every time.
+
 ### Example
 
 ```bash
