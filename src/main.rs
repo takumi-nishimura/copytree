@@ -37,6 +37,7 @@ fn main() -> Result<()> {
         {
             output_text.push_str(&header);
             output_text.push_str("<skipped: excluded by pattern>\n\n");
+            log_skipped_file(path, &current_dir);
             continue;
         }
 
@@ -50,6 +51,7 @@ fn main() -> Result<()> {
                     );
                     output_text.push_str(&header);
                     output_text.push_str(&note);
+                    log_skipped_file(path, &current_dir);
                     continue;
                 }
             }
@@ -64,6 +66,7 @@ fn main() -> Result<()> {
             Err(_) => {
                 output_text.push_str(&header);
                 output_text.push_str("<skipped: binary file>\n\n");
+                log_skipped_file(path, &current_dir);
             }
         }
     }
@@ -273,6 +276,11 @@ fn determine_root_scope(paths: &[String], current_dir: &Path) -> (String, Option
             (label, Some(root_path))
         }
     }
+}
+
+fn log_skipped_file(path: &Path, current_dir: &Path) {
+    let relative = make_relative_path(path, current_dir);
+    eprintln!("Skipped {}", relative.display());
 }
 
 #[cfg(test)]
