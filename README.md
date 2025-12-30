@@ -13,19 +13,7 @@
 ## Installation
 
 ```bash
-cargo install --path .
-```
-
-You can also run it in place without installation:
-
-```bash
-cargo run -- .
-```
-
-For release binaries:
-
-```bash
-cargo build --release
+cargo install --git https://github.com/takumi-nishimura/copytree
 ```
 
 ## Usage
